@@ -16,7 +16,7 @@ type Game struct {
 	Pictures []pixel.Picture
 }
 
-func NewGame(title string, bounds pixel.Rect, resizable bool) *Game {
+func NewGame(title string, bounds pixel.Rect, resizable, smooth bool) *Game {
 	cfg := pixelgl.WindowConfig{
 		Title:     title,
 		Bounds:    bounds,
@@ -28,6 +28,8 @@ func NewGame(title string, bounds pixel.Rect, resizable bool) *Game {
 	if err != nil {
 		panic(err)
 	}
+
+	win.SetSmooth(smooth)
 
 	return &Game{
 		Title: title,
@@ -48,14 +50,6 @@ func (g *Game) LoadPicture(path string) (int, error) {
 	g.Pictures = append(g.Pictures, pixel.PictureDataFromImage(img))
 	return len(g.Pictures) - 1, nil
 }
-
-/*
-func (g *Game) TransitionWindowBounds(bounds pixel.Rect) {
-	b := g.Win.Bounds()
-	an int = (math.Abs(b.Max.X - bounds.Max.X) + math.Abs(b.Max.Y - Bounds.Max.Y)) / 2
-	for g.Win.Bounds().Size().X {}
-}
-*/
 
 func (g *Game) Open() bool {
 	return !g.Win.Closed()

@@ -1,16 +1,24 @@
 package main
 
 import (
-	"time"
-
 	"github.com/faiface/pixel"
+	"github.com/faiface/pixel/imdraw"
 	"github.com/faiface/pixel/pixelgl"
 	"golang.org/x/image/colornames"
 )
 
+const (
+	MAX_BALLS  = 10
+	NET_SCALE  = 1
+	BOT_SCALE  = .7
+	BALL_SCALE = 5
+)
+
 var (
-	game    *Game
-	gophers []*pixel.Sprite
+	game *Game
+
+	bot, net *pixel.Sprite
+	balls    []Ball
 )
 
 func main() {
@@ -18,43 +26,74 @@ func main() {
 }
 
 func run() {
-	game = NewGame("Stay Alive", pixel.R(0, 0, 1280, 768), false)
+	game = NewGame("Nothing But Net", pixel.R(0, 0, 1280, 768), false, true)
 	center := game.Win.Bounds().Center()
 
-	loadGophers()
+	loadObjects()
+	pos := pixel.IM.Moved(center)
 
-	animate := time.Now().Add(time.Millisecond * 250)
-	for blink := false; game.Open(); {
-		game.Loop()
-		game.Win.Clear(colornames.Cornflowerblue)
+	netPos := pos.Scaled(center, NET_SCALE)
+	netPos = netPos.Moved(pixel.V(center.X-game.Pictures[1].Bounds().Max.X*.5-5, -center.Y+game.Pictures[1].Bounds().Max.Y*.5+25))
 
-		pos := pixel.IM.Moved(center).Scaled(center, 5)
-		if blink {
-			gophers[1].Draw(game.Win, pos)
+	botPos := pos.Scaled(center, BOT_SCALE)
+	botPos = botPos.ScaledXY(center, pixel.V(-1, 1))
+	botPos = botPos.Moved(pixel.V(-center.X+game.Pictures[0].Bounds().Max.X*.5+5, -center.Y+game.Pictures[0].Bounds().Max.Y*.5+5))
+	var botVel float64 = 0
 
-			if time.Now().After(animate) {
-				blink = !blink
-				animate = time.Now().Add(time.Millisecond * 250)
+	for game.Open() {
+		game.Win.Clear(colornames.Lightslategray)
+
+		if game.Win.JustPressed(pixelgl.KeySpace) {
+			ball := Ball{
+				Shape: imdraw.New(nil),
+				Vel:   1,
+				Acc:   2,
+				Start: pixel.V(10, 10),
+				Pos:   pixel.V(10, 10),
+			}
+			balls = append(balls, ball)
+		}
+
+		if game.Win.Pressed(pixelgl.KeyLeft) && bot.Frame().Min.X >= 0 {
+			if botVel > -6.3 {
+				botVel -= .7
+			}
+		} else if game.Win.Pressed(pixelgl.KeyRight) && bot.Frame().Max.X <= 1280 {
+			if botVel < 6.3 {
+				botVel += .7
 			}
 		} else {
-			gophers[0].Draw(game.Win, pos)
-
-			if time.Now().After(animate) {
-				blink = !blink
-				animate = time.Now().Add(time.Millisecond * 50)
+			if botVel >= .175 {
+				botVel -= .175
+			} else if botVel <= -.175 {
+				botVel += .175
 			}
 		}
+
+		botPos = botPos.Moved(pixel.V(float64(int(botVel)), 0))
+
+		net.Draw(game.Win, netPos)
+		bot.Draw(game.Win, botPos)
+
+		for _, ball := range balls {
+			ball.Draw(game.Win)
+		}
+
+		game.Loop()
 	}
 }
 
-func loadGophers() {
-	spritesheet, err := game.LoadPicture("./img/gopher.png")
+func loadObjects() {
+	f, err := game.LoadPicture("./img/flywheel.png")
 	if err != nil {
 		panic(err)
 	}
 
-	var l, h float64 = 12, 14
-	for i := 0.0; i < 27; i++ {
-		gophers = append(gophers, pixel.NewSprite(game.Pictures[spritesheet], pixel.R(12*i, 0, 12*i+l, h)))
+	n, err := game.LoadPicture("./img/net.png")
+	if err != nil {
+		panic(err)
 	}
+
+	bot = pixel.NewSprite(game.Pictures[f], game.Pictures[f].Bounds())
+	net = pixel.NewSprite(game.Pictures[n], game.Pictures[n].Bounds())
 }
