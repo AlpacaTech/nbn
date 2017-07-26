@@ -72,8 +72,8 @@ func run() {
 		botPos = botPos.Moved(pixel.V(float64(int(botVel)), 0))
 
 		game.Win.Clear(colornames.Lightslategray)
-		drawAngle(botPos.Project(bot.Frame().Center()), a)
 		net.Draw(game.Win, netPos)
+		drawAngle(botPos.Project(bot.Frame().Center()), a)
 		for _, ball := range balls {
 			ball.Draw(game.Win)
 		}
@@ -104,7 +104,7 @@ func drawAngle(botPos pixel.Vec, a float64) {
 	angle.Reset()
 
 	t := pixel.IM.Moved(pixel.V(100, -25))
-	angle.Push(t.Project(botPos), t.Moved(pixel.V(500, a*500)).Project(botPos))
+	angle.Push(t.Project(botPos), t.Moved(pixel.V(100, a*100)).Project(botPos))
 
 	angle.Color = colornames.Darkred
 	angle.SetColorMask(colornames.Darkgoldenrod)
