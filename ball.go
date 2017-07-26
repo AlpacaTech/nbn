@@ -15,19 +15,34 @@ type Ball struct {
 	Pos   pixel.Vec
 }
 
-func (B Ball) Draw(w *pixelgl.Window) {
-	B.Pos = B.Calc()
+func NewBall(vel, acc float64, pos pixel.Vec) (b *Ball) {
+	b = new(Ball)
+	b.Shape = imdraw.New(nil)
+	b.Vel = vel
+	b.Acc = acc
 
+	t := pixel.IM.Moved(pixel.V(100, -25))
+	b.Pos = t.Project(pos)
+	b.Start = b.Pos
+	return
+}
+
+func (B *Ball) Draw(w *pixelgl.Window) {
+	B.Shape.Clear()
 	B.Shape.Reset()
-	B.Shape.Push(B.Pos)
-	B.Shape.Color = colornames.Yellow
-	B.Shape.Circle(8, 0)
 
+	B.Calc()
+	B.Shape.Push(B.Pos)
+
+	B.Shape.Color = colornames.Lightyellow
+	B.Shape.SetColorMask(colornames.Greenyellow)
+
+	B.Shape.Circle(8, 0)
 	B.Shape.Draw(w)
 }
 
-func (B Ball) Calc() pixel.Vec {
-	// y := B.Acc*(B.Pos.X+B.Vel) + B.Start.Y
-	// return pixel.V(B.Pos.X+B.Vel, y)
-	return B.Pos.Add(pixel.V(1, 1))
+func (B *Ball) Calc() {
+	x := B.Pos.X + B.Vel
+	y := B.Start.Y + (B.Pos.X-B.Start.X)*B.Vel
+	B.Pos = pixel.V(x*B.Acc, y*B.Acc)
 }

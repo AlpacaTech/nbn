@@ -8,7 +8,7 @@ import (
 )
 
 const (
-	MAX_BALLS  = 10
+	MAX_BALLS  = 100
 	NET_SCALE  = 1
 	BOT_SCALE  = .7
 	BALL_SCALE = 5
@@ -18,7 +18,8 @@ var (
 	game *Game
 
 	bot, net *pixel.Sprite
-	balls    []Ball
+	balls    []*Ball
+	angle    *imdraw.IMDraw
 )
 
 func main() {
@@ -38,27 +39,19 @@ func run() {
 	botPos := pos.Scaled(center, BOT_SCALE)
 	botPos = botPos.ScaledXY(center, pixel.V(-1, 1))
 	botPos = botPos.Moved(pixel.V(-center.X+game.Pictures[0].Bounds().Max.X*.5+5, -center.Y+game.Pictures[0].Bounds().Max.Y*.5+5))
-	var botVel float64 = 0
+	var botVel, a float64 = 0, 0
 
 	for game.Open() {
-		game.Win.Clear(colornames.Lightslategray)
-
-		if game.Win.JustPressed(pixelgl.KeySpace) {
-			ball := Ball{
-				Shape: imdraw.New(nil),
-				Vel:   1,
-				Acc:   2,
-				Start: pixel.V(10, 10),
-				Pos:   pixel.V(10, 10),
-			}
+		if game.Win.JustPressed(pixelgl.KeySpace) && len(balls) <= MAX_BALLS {
+			ball := NewBall(a, 1.01, botPos.Project(bot.Frame().Center()))
 			balls = append(balls, ball)
 		}
 
-		if game.Win.Pressed(pixelgl.KeyLeft) && bot.Frame().Min.X >= 0 {
+		if game.Win.Pressed(pixelgl.KeyLeft) {
 			if botVel > -6.3 {
 				botVel -= .7
 			}
-		} else if game.Win.Pressed(pixelgl.KeyRight) && bot.Frame().Max.X <= 1280 {
+		} else if game.Win.Pressed(pixelgl.KeyRight) {
 			if botVel < 6.3 {
 				botVel += .7
 			}
@@ -70,14 +63,21 @@ func run() {
 			}
 		}
 
+		if game.Win.Pressed(pixelgl.KeyUp) {
+			a += .02
+		} else if game.Win.Pressed(pixelgl.KeyDown) {
+			a -= .02
+		}
+
 		botPos = botPos.Moved(pixel.V(float64(int(botVel)), 0))
 
+		game.Win.Clear(colornames.Lightslategray)
+		drawAngle(botPos.Project(bot.Frame().Center()), a)
 		net.Draw(game.Win, netPos)
-		bot.Draw(game.Win, botPos)
-
 		for _, ball := range balls {
 			ball.Draw(game.Win)
 		}
+		bot.Draw(game.Win, botPos)
 
 		game.Loop()
 	}
@@ -96,4 +96,19 @@ func loadObjects() {
 
 	bot = pixel.NewSprite(game.Pictures[f], game.Pictures[f].Bounds())
 	net = pixel.NewSprite(game.Pictures[n], game.Pictures[n].Bounds())
+	angle = imdraw.New(nil)
+}
+
+func drawAngle(botPos pixel.Vec, a float64) {
+	angle.Clear()
+	angle.Reset()
+
+	t := pixel.IM.Moved(pixel.V(100, -25))
+	angle.Push(t.Project(botPos), t.Moved(pixel.V(500, a*500)).Project(botPos))
+
+	angle.Color = colornames.Darkred
+	angle.SetColorMask(colornames.Darkgoldenrod)
+
+	angle.Line(3)
+	angle.Draw(game.Win)
 }
