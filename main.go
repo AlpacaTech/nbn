@@ -1,6 +1,8 @@
 package main
 
 import (
+	"math"
+
 	"github.com/faiface/pixel"
 	"github.com/faiface/pixel/imdraw"
 	"github.com/faiface/pixel/pixelgl"
@@ -43,7 +45,7 @@ func run() {
 
 	for game.Open() {
 		if game.Win.JustPressed(pixelgl.KeySpace) && len(balls) <= MAX_BALLS {
-			ball := NewBall(a, 1.01, botPos.Project(bot.Frame().Center()))
+			ball := NewBall(a, 1.05, botPos.Project(bot.Frame().Center()))
 			balls = append(balls, ball)
 		}
 
@@ -74,8 +76,19 @@ func run() {
 		game.Win.Clear(colornames.Lightslategray)
 		net.Draw(game.Win, netPos)
 		drawAngle(botPos.Project(bot.Frame().Center()), a)
-		for _, ball := range balls {
-			ball.Draw(game.Win)
+
+		for i, ball := range balls {
+			max := game.Win.Bounds().Contains(ball.Pos.Add(pixel.V(-8, -8)))
+			min := game.Win.Bounds().Contains(ball.Pos.Add(pixel.V(8, 8)))
+			if max || min {
+				ball.Draw(game.Win)
+			} else {
+				ab := i + 1
+				if ab >= len(balls) {
+					ab--
+				}
+				balls = append(balls[:i], balls[ab:]...)
+			}
 		}
 		bot.Draw(game.Win, botPos)
 
@@ -103,12 +116,13 @@ func drawAngle(botPos pixel.Vec, a float64) {
 	angle.Clear()
 	angle.Reset()
 
-	t := pixel.IM.Moved(pixel.V(100, -25))
-	angle.Push(t.Project(botPos), t.Moved(pixel.V(100, a*100)).Project(botPos))
+	// t := pixel.IM.Moved(pixel.V(100, -25))
+	// angle.Push(t.Project(botPos), t.Moved(pixel.V(50, a*50)).Project(botPos))
+	angle.Push(pixel.V(50, math.Abs(a*20)+400), pixel.V(50, 400))
 
 	angle.Color = colornames.Darkred
-	angle.SetColorMask(colornames.Darkgoldenrod)
+	angle.SetColorMask(colornames.Seagreen)
 
-	angle.Line(3)
+	angle.Line(9)
 	angle.Draw(game.Win)
 }

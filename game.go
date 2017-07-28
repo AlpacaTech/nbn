@@ -3,6 +3,7 @@ package main
 import (
 	"image"
 	"os"
+	"time"
 
 	_ "image/png"
 
@@ -13,6 +14,7 @@ import (
 type Game struct {
 	Title    string
 	Win      *pixelgl.Window
+	Ticker   *time.Ticker
 	Pictures []pixel.Picture
 }
 
@@ -32,8 +34,9 @@ func NewGame(title string, bounds pixel.Rect, resizable, smooth bool) *Game {
 	win.SetSmooth(smooth)
 
 	return &Game{
-		Title: title,
-		Win:   win,
+		Title:  title,
+		Win:    win,
+		Ticker: time.NewTicker(time.Second / 60),
 	}
 }
 
@@ -57,4 +60,5 @@ func (g *Game) Open() bool {
 
 func (g *Game) Loop() {
 	g.Win.Update()
+	<-g.Ticker.C
 }
