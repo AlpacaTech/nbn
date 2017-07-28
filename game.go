@@ -16,14 +16,15 @@ type Game struct {
 	Win      *pixelgl.Window
 	Ticker   *time.Ticker
 	Pictures []pixel.Picture
+	Over     bool
 }
 
-func NewGame(title string, bounds pixel.Rect, resizable, smooth bool) *Game {
+func NewGame(title string, bounds pixel.Rect, resizable, smooth bool, length time.Duration) *Game {
 	cfg := pixelgl.WindowConfig{
 		Title:     title,
 		Bounds:    bounds,
 		Resizable: resizable,
-		VSync:     true,
+		VSync:     smooth,
 	}
 
 	win, err := pixelgl.NewWindow(cfg)
@@ -33,11 +34,14 @@ func NewGame(title string, bounds pixel.Rect, resizable, smooth bool) *Game {
 
 	win.SetSmooth(smooth)
 
-	return &Game{
+	g := &Game{
 		Title:  title,
 		Win:    win,
 		Ticker: time.NewTicker(time.Second / 60),
+		Over:   false,
 	}
+	go g.Wait(length)
+	return g
 }
 
 func (g *Game) LoadPicture(path string) (int, error) {
@@ -55,10 +59,15 @@ func (g *Game) LoadPicture(path string) (int, error) {
 }
 
 func (g *Game) Open() bool {
-	return !g.Win.Closed()
+	return !g.Win.Closed() && !g.Over
 }
 
 func (g *Game) Loop() {
 	g.Win.Update()
 	<-g.Ticker.C
+}
+
+func (g *Game) Wait(length time.Duration) {
+	time.Sleep(length)
+	g.Over = true
 }

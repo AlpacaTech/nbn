@@ -56,6 +56,6 @@ func (B *Ball) Calc() {
 	t := B.Pos.X - B.Start.X
 	x := B.Start.X + t + B.Vel
 	y := B.Start.Y + .9*math.Pow(t, 1.09)
-	B.Pos = pixel.V(x*1.007, y)
+	B.Pos = pixel.V(x+1.007, y)
 	B.Start = pixel.V(B.Start.X, B.Start.Y-(0.03*t))
 }

@@ -1,12 +1,15 @@
 package main
 
 import (
+	"fmt"
 	"math"
+	"time"
+
+	"golang.org/x/image/colornames"
 
 	"github.com/faiface/pixel"
 	"github.com/faiface/pixel/imdraw"
 	"github.com/faiface/pixel/pixelgl"
-	"golang.org/x/image/colornames"
 )
 
 const (
@@ -22,17 +25,21 @@ var (
 	bot, net *pixel.Sprite
 	balls    []*Ball
 	angle    *imdraw.IMDraw
+
+	score int = 0
 )
 
 func main() {
 	pixelgl.Run(run)
+	fmt.Println(score)
 }
 
 func run() {
-	game = NewGame("Nothing But Net", pixel.R(0, 0, 1280, 768), false, true)
+	game = NewGame("Nothing But Net", pixel.R(0, 0, 1280, 768), true, true, time.Second*45)
 	center := game.Win.Bounds().Center()
 
 	loadObjects()
+
 	pos := pixel.IM.Moved(center)
 
 	netPos := pos.Scaled(center, NET_SCALE)
@@ -78,9 +85,10 @@ func run() {
 		drawAngle(botPos.Project(bot.Frame().Center()), a)
 
 		for i, ball := range balls {
+			scored := pixel.R(1157, 281, 1272, 359).Contains(ball.Pos) && ball.Pos.Y < netLine(ball.Pos.X)
 			max := game.Win.Bounds().Contains(ball.Pos.Add(pixel.V(-8, -8)))
 			min := game.Win.Bounds().Contains(ball.Pos.Add(pixel.V(8, 8)))
-			if max || min {
+			if (max || min) && !scored {
 				ball.Draw(game.Win)
 			} else {
 				ab := i + 1
@@ -88,6 +96,9 @@ func run() {
 					ab--
 				}
 				balls = append(balls[:i], balls[ab:]...)
+				if scored {
+					score += 5
+				}
 			}
 		}
 		bot.Draw(game.Win, botPos)
@@ -97,12 +108,12 @@ func run() {
 }
 
 func loadObjects() {
-	f, err := game.LoadPicture("./img/flywheel.png")
+	f, err := game.LoadPicture("./resource/flywheel.png")
 	if err != nil {
 		panic(err)
 	}
 
-	n, err := game.LoadPicture("./img/net.png")
+	n, err := game.LoadPicture("./resource/net.png")
 	if err != nil {
 		panic(err)
 	}
@@ -116,13 +127,15 @@ func drawAngle(botPos pixel.Vec, a float64) {
 	angle.Clear()
 	angle.Reset()
 
-	// t := pixel.IM.Moved(pixel.V(100, -25))
-	// angle.Push(t.Project(botPos), t.Moved(pixel.V(50, a*50)).Project(botPos))
 	angle.Push(pixel.V(50, math.Abs(a*20)+400), pixel.V(50, 400))
 
 	angle.Color = colornames.Darkred
-	angle.SetColorMask(colornames.Seagreen)
+	angle.SetColorMask(colornames.Darkred)
 
 	angle.Line(9)
 	angle.Draw(game.Win)
+}
+
+func netLine(x float64) float64 {
+	return 0.69565217391*x - 525.86956521
 }
