@@ -37,7 +37,7 @@ func NewGame(title string, bounds pixel.Rect, resizable, smooth bool, length tim
 	g := &Game{
 		Title:  title,
 		Win:    win,
-		Ticker: time.NewTicker(time.Second / 60),
+		Ticker: time.NewTicker(time.Second / 80),
 		Over:   false,
 	}
 	go g.Wait(length)

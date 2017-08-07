@@ -24,11 +24,12 @@ type Ball struct {
 func NewBall(vel, acc float64, pos pixel.Vec) (b *Ball) {
 	b = new(Ball)
 
-	b.Rsource = rand.NewSource(int64(time.Now().Second()))
+	b.Rsource = rand.NewSource(int64(rand.Int()) * int64(time.Now().Second()))
 	b.Rgen = rand.New(b.Rsource)
+	rand.Seed(int64(b.Rgen.Int()))
 
 	b.Shape = imdraw.New(nil)
-	b.Vel = vel - .75 + b.Rgen.Float64()
+	b.Vel = vel - .7 + 1.2*b.Rgen.Float64()
 	b.Acc = acc
 
 	t := pixel.IM.Moved(pixel.V(100, -25))

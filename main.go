@@ -13,7 +13,7 @@ import (
 )
 
 const (
-	MAX_BALLS  = 100
+	MAX_BALLS  = 50
 	NET_SCALE  = 1
 	BOT_SCALE  = .7
 	BALL_SCALE = 5
@@ -43,11 +43,12 @@ func run() {
 	pos := pixel.IM.Moved(center)
 
 	netPos := pos.Scaled(center, NET_SCALE)
-	netPos = netPos.Moved(pixel.V(center.X-game.Pictures[1].Bounds().Max.X*.5-5, -center.Y+game.Pictures[1].Bounds().Max.Y*.5+25))
+	netPos = netPos.Moved(pixel.V(center.X-game.Pictures[1].Bounds().Max.X*.5-5, -center.Y+game.Pictures[1].Bounds().Max.Y*.5))
 
 	botPos := pos.Scaled(center, BOT_SCALE)
 	botPos = botPos.ScaledXY(center, pixel.V(-1, 1))
-	botPos = botPos.Moved(pixel.V(-center.X+game.Pictures[0].Bounds().Max.X*.5+5, -center.Y+game.Pictures[0].Bounds().Max.Y*.5+5))
+	botPos = botPos.Moved(pixel.V(-center.X+game.Pictures[0].Bounds().Max.X*.5+5, -center.Y+game.Pictures[0].Bounds().Max.Y*.5-20))
+	// botPos = botPos.Moved(pixel.V(bot.Frame().W(), bot.Frame().H()))
 	var botVel, a float64 = 0, 0
 
 	for game.Open() {
@@ -60,11 +61,13 @@ func run() {
 			if botVel > -6.3 {
 				botVel -= .7
 			}
-		} else if game.Win.Pressed(pixelgl.KeyRight) {
+		}
+		if game.Win.Pressed(pixelgl.KeyRight) {
 			if botVel < 6.3 {
 				botVel += .7
 			}
-		} else {
+		}
+		if !game.Win.Pressed(pixelgl.KeyRight) && !game.Win.Pressed(pixelgl.KeyLeft) {
 			if botVel >= .175 {
 				botVel -= .175
 			} else if botVel <= -.175 {
@@ -74,33 +77,49 @@ func run() {
 
 		if game.Win.Pressed(pixelgl.KeyUp) {
 			a += .02
-		} else if game.Win.Pressed(pixelgl.KeyDown) {
+		}
+		if game.Win.Pressed(pixelgl.KeyDown) {
 			a -= .02
 		}
 
 		botPos = botPos.Moved(pixel.V(float64(int(botVel)), 0))
+		in := game.Win.Bounds().Contains(botPos.Project(bot.Frame().Center()))
+		// in = in && game.Win.Bounds().Contains(botPos.Project(bot.Frame().Center()).Add(pixel.V(bot.Frame().W()*.6, 0)))
+		in = in && net.Frame().Intersect(bot.Frame()).Min.X == 0
+		// in = in && !net.Frame().Contains(botPos.Project(bot.Frame().Max))
+
+		if !in {
+			botPos = botPos.Moved(pixel.V(float64(int(-botVel)), 0))
+		}
 
 		game.Win.Clear(colornames.Lightslategray)
 		net.Draw(game.Win, netPos)
 		drawAngle(botPos.Project(bot.Frame().Center()), a)
 
 		for i, ball := range balls {
-			scored := pixel.R(1157, 281, 1272, 359).Contains(ball.Pos) && ball.Pos.Y < netLine(ball.Pos.X)
+			upperScored := pixel.R(1160, 275, 1270, 355).Contains(ball.Pos) && ball.Pos.Y < netLine(ball.Pos.X, true)
+			lowerScored := pixel.R(1040, 30, 1270, 280).Contains(ball.Pos) && ball.Pos.Y < netLine(ball.Pos.X, false)
 			max := game.Win.Bounds().Contains(ball.Pos.Add(pixel.V(-8, -8)))
 			min := game.Win.Bounds().Contains(ball.Pos.Add(pixel.V(8, 8)))
-			if (max || min) && !scored {
+			if (max || min) && !upperScored && !lowerScored {
 				ball.Draw(game.Win)
 			} else {
-				ab := i + 1
-				if ab >= len(balls) {
-					ab--
-				}
-				balls = append(balls[:i], balls[ab:]...)
-				if scored {
+				func() {
+					defer func() {
+						if e := recover(); e != nil {
+							balls = balls
+						}
+					}()
+					balls = append(balls[:i], balls[i+1:]...)
+				}()
+				if upperScored {
 					score += 5
+				} else if lowerScored {
+					score += 1
 				}
 			}
 		}
+
 		bot.Draw(game.Win, botPos)
 
 		game.Loop()
@@ -136,6 +155,9 @@ func drawAngle(botPos pixel.Vec, a float64) {
 	angle.Draw(game.Win)
 }
 
-func netLine(x float64) float64 {
-	return 0.69565217391*x - 525.86956521
+func netLine(x float64, upper bool) float64 {
+	if upper {
+		return 0.69565217391*x - 535.86956521
+	}
+	return 0.4347826086956521739130*x - 422.1739130434782608695
 }
